@@ -183,7 +183,7 @@ int *reed_sol_extended_vandermonde_matrix(int rows, int cols, int w)
 
   vdm = talloc(int, rows*cols);
   if (vdm == NULL) { return NULL; }
-  
+
   vdm[0] = 1;
   for (j = 1; j < cols; j++) vdm[j] = 0;
   if (rows == 1) return vdm;
@@ -210,7 +210,7 @@ int *reed_sol_big_vandermonde_distribution_matrix(int rows, int cols, int w)
   int sindex, srindex, siindex, tmp;
 
   if (cols >= rows) return NULL;
-  
+
   dist = reed_sol_extended_vandermonde_matrix(rows, cols, w);
   if (dist == NULL) return NULL;
 
@@ -226,7 +226,7 @@ int *reed_sol_big_vandermonde_distribution_matrix(int rows, int cols, int w)
              rows, cols, w);
       assert(0);
     }
- 
+
     /* If necessary, swap rows */
     if (j != i) {
       srindex -= i;

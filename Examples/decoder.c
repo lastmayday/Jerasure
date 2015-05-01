@@ -44,16 +44,16 @@
    Revision 1.0 - 2007: James S. Plank.
  */
 
-/* 
+/*
 This program takes as input an inputfile, k, m, a coding
 technique, w, and packetsize.  It is the companion program
-of encoder.c, which creates k+m files.  This program assumes 
+of encoder.c, which creates k+m files.  This program assumes
 that up to m erasures have occurred in the k+m files.  It
 reads in the k+m files or marks the file as erased. It then
 recreates the original file and creates a new file with the
 suffix "decoded" with the decoded contents of the file.
 
-This program does not error check command line arguments because 
+This program does not error check command line arguments because
 it is assumed that encoder.c has been called previously with the
 same arguments, and encoder.c does error check.
 */
@@ -74,12 +74,13 @@ same arguments, and encoder.c does error check.
 #include "cauchy.h"
 #include "liberation.h"
 #include "timing.h"
+#include "evenodd.h"
 
 #define N 10
 
-enum Coding_Technique {Reed_Sol_Van, Reed_Sol_R6_Op, Cauchy_Orig, Cauchy_Good, Liberation, Blaum_Roth, Liber8tion, RDP, EVENODD, No_Coding};
+enum Coding_Technique {Reed_Sol_Van, Reed_Sol_R6_Op, Cauchy_Orig, Cauchy_Good, Liberation, Blaum_Roth, Liber8tion, EVENODD, No_Coding};
 
-char *Methods[N] = {"reed_sol_van", "reed_sol_r6_op", "cauchy_orig", "cauchy_good", "liberation", "blaum_roth", "liber8tion", "rdp", "evenodd", "no_coding"};
+char *Methods[N] = {"reed_sol_van", "reed_sol_r6_op", "cauchy_orig", "cauchy_good", "liberation", "blaum_roth", "liber8tion", "evenodd", "no_coding"};
 
 /* Global variables for signal handler */
 enum Coding_Technique method;
@@ -98,19 +99,19 @@ int main (int argc, char **argv) {
 	int *erased;
 	int *matrix;
 	int *bitmatrix;
-	
+
 	/* Parameters */
 	int k, m, w, packetsize, buffersize;
 	int tech;
 	char *c_tech;
-	
+
 	int i, j;				// loop control variable, s
 	int blocksize = 0;			// size of individual files
 	int origsize;			// size of file before padding
 	int total;				// used to write data, not padding to file
 	struct stat status;		// used to find size of individual files
 	int numerased;			// number of erased files
-		
+
 	/* Used to recreate file names */
 	char *temp;
 	char *cs1, *cs2, *extension;
@@ -123,13 +124,12 @@ int main (int argc, char **argv) {
 	double tsec;
 	double totalsec;
 
-	
 	signal(SIGQUIT, ctrl_bs_handler);
 
 	matrix = NULL;
 	bitmatrix = NULL;
 	totalsec = 0.0;
-	
+
 	/* Start timing */
 	timing_set(&t1);
 
@@ -140,7 +140,7 @@ int main (int argc, char **argv) {
 	}
 	curdir = (char *)malloc(sizeof(char)*1000);
 	assert(curdir == getcwd(curdir, 1000));
-	
+
 	/* Begin recreation of file names */
 	cs1 = (char*)malloc(sizeof(char)*strlen(argv[1]));
 	cs2 = strrchr(argv[1], '/');
@@ -153,27 +153,27 @@ int main (int argc, char **argv) {
 	}
 	cs2 = strchr(cs1, '.');
 	if (cs2 != NULL) {
-                extension = strdup(cs2);
+        extension = strdup(cs2);
 		*cs2 = '\0';
 	} else {
-           extension = strdup("");
-        }	
+        extension = strdup("");
+    }
 	fname = (char *)malloc(sizeof(char*)*(100+strlen(argv[1])+20));
 
 	/* Read in parameters from metadata file */
 	sprintf(fname, "%s/Coding/%s_meta.txt", curdir, cs1);
 
 	fp = fopen(fname, "rb");
-        if (fp == NULL) {
-          fprintf(stderr, "Error: no metadata file %s\n", fname);
-          exit(1);
-        }
+    if (fp == NULL) {
+	  fprintf(stderr, "Error: no metadata file %s\n", fname);
+	  exit(1);
+	}
 	temp = (char *)malloc(sizeof(char)*(strlen(argv[1])+20));
 	if (fscanf(fp, "%s", temp) != 1) {
 		fprintf(stderr, "Metadata file - bad format\n");
 		exit(0);
 	}
-	
+
 	if (fscanf(fp, "%d", &origsize) != 1) {
 		fprintf(stderr, "Original size is not valid\n");
 		exit(0);
@@ -196,7 +196,7 @@ int main (int argc, char **argv) {
 		fprintf(stderr, "Metadata file - bad format\n");
 		exit(0);
 	}
-	fclose(fp);	
+	fclose(fp);
 
 	/* Allocate memory */
 	erased = (int *)malloc(sizeof(int)*(k+m));
@@ -207,13 +207,13 @@ int main (int argc, char **argv) {
 	data = (char **)malloc(sizeof(char *)*k);
 	coding = (char **)malloc(sizeof(char *)*m);
 	if (buffersize != origsize) {
+        blocksize = buffersize/k;
 		for (i = 0; i < k; i++) {
-			data[i] = (char *)malloc(sizeof(char)*(buffersize/k));
+			data[i] = (char *)malloc(sizeof(char)*(buffersize/k*2));
 		}
 		for (i = 0; i < m; i++) {
-			coding[i] = (char *)malloc(sizeof(char)*(buffersize/k));
+			coding[i] = (char *)malloc(sizeof(char)*(buffersize/k*2));
 		}
-		blocksize = buffersize/k;
 	}
 
 	sprintf(temp, "%d", k);
@@ -246,16 +246,19 @@ int main (int argc, char **argv) {
 			break;
 		case Liber8tion:
 			bitmatrix = liber8tion_coding_bitmatrix(k);
+            break;
+        case EVENODD:
+            break;
 	}
 	timing_set(&t4);
 	totalsec += timing_delta(&t3, &t4);
-	
+
 	/* Begin decoding process */
 	total = 0;
-	n = 1;	
+	n = 1;
 	while (n <= readins) {
 		numerased = 0;
-		/* Open files, check for erasures, read in data/coding */	
+		/* Open files, check for erasures, read in data/coding */
 		for (i = 1; i <= k; i++) {
 			sprintf(fname, "%s/Coding/%s_k%0*d%s", curdir, cs1, md, i, extension);
 			fp = fopen(fname, "rb");
@@ -269,11 +272,11 @@ int main (int argc, char **argv) {
 				if (buffersize == origsize) {
 					stat(fname, &status);
 					blocksize = status.st_size;
-					data[i-1] = (char *)malloc(sizeof(char)*blocksize);
+					data[i-1] = (char *)malloc(sizeof(char)*blocksize*2);
 					assert(blocksize == fread(data[i-1], sizeof(char), blocksize, fp));
 				}
 				else {
-					fseek(fp, blocksize*(n-1), SEEK_SET); 
+					fseek(fp, blocksize*(n-1), SEEK_SET);
 					assert(buffersize/k == fread(data[i-1], sizeof(char), buffersize/k, fp));
 				}
 				fclose(fp);
@@ -292,13 +295,13 @@ int main (int argc, char **argv) {
 				if (buffersize == origsize) {
 					stat(fname, &status);
 					blocksize = status.st_size;
-					coding[i-1] = (char *)malloc(sizeof(char)*blocksize);
+					coding[i-1] = (char *)malloc(sizeof(char)*blocksize*2);
 					assert(blocksize == fread(coding[i-1], sizeof(char), blocksize, fp));
 				}
 				else {
 					fseek(fp, blocksize*(n-1), SEEK_SET);
 					assert(blocksize == fread(coding[i-1], sizeof(char), blocksize, fp));
-				}	
+				}
 				fclose(fp);
 			}
 		}
@@ -306,17 +309,17 @@ int main (int argc, char **argv) {
 		if (n == 1) {
 			for (i = 0; i < numerased; i++) {
 				if (erasures[i] < k) {
-					data[erasures[i]] = (char *)malloc(sizeof(char)*blocksize);
+					data[erasures[i]] = (char *)malloc(sizeof(char)*blocksize*2);
 				}
 				else {
-					coding[erasures[i]-k] = (char *)malloc(sizeof(char)*blocksize);
+					coding[erasures[i]-k] = (char *)malloc(sizeof(char)*blocksize*2);
 				}
 			}
 		}
-		
+
 		erasures[numerased] = -1;
 		timing_set(&t3);
-	
+
 		/* Choose proper decoding method */
 		if (tech == Reed_Sol_Van || tech == Reed_Sol_R6_Op) {
 			i = jerasure_matrix_decode(k, m, w, matrix, 1, erasures, data, coding, blocksize);
@@ -324,18 +327,21 @@ int main (int argc, char **argv) {
 		else if (tech == Cauchy_Orig || tech == Cauchy_Good || tech == Liberation || tech == Blaum_Roth || tech == Liber8tion) {
 			i = jerasure_schedule_decode_lazy(k, m, w, bitmatrix, erasures, data, coding, blocksize, packetsize, 1);
 		}
+        else if (tech == EVENODD) {
+            i = evenodd_decode(k, erasures, data, coding, blocksize);
+        }
 		else {
 			fprintf(stderr, "Not a valid coding technique.\n");
 			exit(0);
 		}
 		timing_set(&t4);
-	
+
 		/* Exit if decoding was unsuccessful */
 		if (i == -1) {
 			fprintf(stderr, "Unsuccessful!\n");
 			exit(0);
 		}
-	
+
 		/* Create decoded file */
 		sprintf(fname, "%s/Coding/%s_decoded%s", curdir, cs1, extension);
 		if (n == 1) {
@@ -358,7 +364,6 @@ int main (int argc, char **argv) {
 					else {
 						break;
 					}
-					
 				}
 			}
 		}
@@ -366,7 +371,7 @@ int main (int argc, char **argv) {
 		fclose(fp);
 		totalsec += timing_delta(&t3, &t4);
 	}
-	
+
 	/* Free allocated memory */
 	free(cs1);
 	free(extension);
@@ -375,7 +380,7 @@ int main (int argc, char **argv) {
 	free(coding);
 	free(erasures);
 	free(erased);
-	
+
 	/* Stop timing and print time */
 	timing_set(&t2);
 	tsec = timing_delta(&t1, &t2);
@@ -383,7 +388,7 @@ int main (int argc, char **argv) {
 	printf("De_Total (MB/sec): %0.10f\n\n", (((double) origsize)/1024.0/1024.0)/tsec);
 
 	return 0;
-}	
+}
 
 void ctrl_bs_handler(int dummy) {
 	time_t mytime;

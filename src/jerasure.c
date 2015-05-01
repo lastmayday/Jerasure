@@ -76,7 +76,7 @@ void jerasure_print_matrix(int *m, int rows, int cols, int w)
   for (i = 0; i < rows; i++) {
     for (j = 0; j < cols; j++) {
       if (j != 0) printf(" ");
-      printf("%*u", fw, m[i*cols+j]); 
+      printf("%*u", fw, m[i*cols+j]);
     }
     printf("\n");
   }
@@ -90,7 +90,7 @@ void jerasure_print_bitmatrix(int *m, int rows, int cols, int w)
     if (i != 0 && i%w == 0) printf("\n");
     for (j = 0; j < cols; j++) {
       if (j != 0 && j%w == 0) printf(" ");
-      printf("%d", m[i*cols+j]); 
+      printf("%d", m[i*cols+j]);
     }
     printf("\n");
   }
@@ -188,7 +188,7 @@ int jerasure_matrix_decode(int k, int m, int w, int *matrix, int row_k_ones, int
       lastdrive = i;
     }
   }
-    
+
   /* You only need to create the decoding matrix in the following cases:
 
       1. edd > 0 and row_k_ones is false.
@@ -198,7 +198,7 @@ int jerasure_matrix_decode(int k, int m, int w, int *matrix, int row_k_ones, int
       We're going to use lastdrive to denote when to stop decoding data.
       At this point in the code, it is equal to the last erased data device.
       However, if we can't use the parity row to decode it (i.e. row_k_ones=0
-         or erased[k] = 1, we're going to set it to k so that the decoding 
+         or erased[k] = 1, we're going to set it to k so that the decoding
          pass will decode all data.
    */
 
@@ -229,7 +229,7 @@ int jerasure_matrix_decode(int k, int m, int w, int *matrix, int row_k_ones, int
     }
   }
 
-  /* Decode the data drives.  
+  /* Decode the data drives.
      If row_k_ones is true and coding device 0 is intact, then only decode edd-1 drives.
      This is done by stopping at lastdrive.
      We test whether edd > 0 so that we can exit the loop early if we're done.
@@ -258,7 +258,7 @@ int jerasure_matrix_decode(int k, int m, int w, int *matrix, int row_k_ones, int
     jerasure_matrix_dotprod(k, w, matrix, tmpids, lastdrive, data_ptrs, coding_ptrs, size);
     free(tmpids);
   }
-  
+
   /* Finally, re-encode any erased coding devices */
 
   for (i = 0; i < m; i++) {
@@ -275,7 +275,7 @@ int jerasure_matrix_decode(int k, int m, int w, int *matrix, int row_k_ones, int
 }
 
 
-int *jerasure_matrix_to_bitmatrix(int k, int m, int w, int *matrix) 
+int *jerasure_matrix_to_bitmatrix(int k, int m, int w, int *matrix)
 {
   int *bitmatrix;
   int rowelts, rowindex, colindex, elt, i, j, l, x;
@@ -309,7 +309,7 @@ void jerasure_matrix_encode(int k, int m, int w, int *matrix,
                           char **data_ptrs, char **coding_ptrs, int size)
 {
   int i;
-  
+
   if (w != 8 && w != 16 && w != 32) {
     fprintf(stderr, "ERROR: jerasure_matrix_encode() and w is not 8, 16 or 32\n");
     assert(0);
@@ -552,7 +552,7 @@ int *jerasure_erasures_to_erased(int k, int m, int *erasures)
   }
   return erased;
 }
-  
+
 void jerasure_free_schedule(int **schedule)
 {
   int i;
@@ -867,7 +867,7 @@ static int **jerasure_generate_decoding_schedule(int k, int m, int w, int *bitma
     return NULL;
   }
 
-  /* Now, we're going to create one decoding matrix which is going to 
+  /* Now, we're going to create one decoding matrix which is going to
      decode everything with one call.  The hope is that the scheduler
      will do a good job.    This matrix has w*e rows, where e is the
      number of erasures (ddf+cdf) */
@@ -884,7 +884,6 @@ static int **jerasure_generate_decoding_schedule(int k, int m, int w, int *bitma
      matrix inversion */
 
   if (ddf > 0) {
-    
     decoding_matrix = talloc(int, k*k*w*w);
     if (!decoding_matrix) {
       free(row_ids);
@@ -897,7 +896,7 @@ static int **jerasure_generate_decoding_schedule(int k, int m, int w, int *bitma
         bzero(ptr, k*w*w*sizeof(int));
         for (x = 0; x < w; x++) {
           ptr[x+i*w+x*k*w] = 1;
-        } 
+        }
       } else {
         memcpy(ptr, bitmatrix+k*w*w*(row_ids[i]-k), k*w*w*sizeof(int));
       }
