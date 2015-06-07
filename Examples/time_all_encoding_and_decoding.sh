@@ -1,10 +1,13 @@
-#!/usr/bin/sh
+#!/usr/bin/env bash
 
-METHODS=("reed_sol_van" "reed_sol_r6_op" "cauchy_orig" "cauchy_good" "liberation" "blaum_roth" "liber8tion" "evenodd")
-ITERATIONS=5
-BUFSIZE=65536
+# METHODS=("reed_sol_van" "reed_sol_r6_op" "cauchy_orig" "cauchy_good" "evenodd")
+BUFSIZE=(1024 4096 16384 65536 262144 \
+         1048576 4194304 16777216 67108864  268435456 \
+         1073741824)
+METHODS=("cauchy_good")
+ITERATIONS=10
 PACSIZE=2048
-FILE="/home/lastmayday/Pictures/7dd98d1001e939012694ccd07aec54e737d1964d.jpg"
+FILE="/home/huangdi/Documents/bigfile.tmp"
 k=5
 m=2
 w=8
@@ -29,34 +32,27 @@ for method in "${METHODS[@]}"; do
         w=8
     fi
 
-    t1=0
-    t2=0
-    for i in `seq $ITERATIONS`; do
-        res=`./encoder ${FILE} ${k} ${m} ${method} ${w} ${PACSIZE} ${BUFSIZE}`
-        encode=$(echo $res | awk -F ' ' '{print $3}')
-        t1=$(echo $t1 $encode | awk '{ printf "%f", $1 + $2 }')
-        en_total=$(echo $res | awk -F ' ' '{print $6}')
-        t2=$(echo $t2 $en_total | awk '{ printf "%f", $1 + $2 }')
-    done
-    encode=$(echo $t1 $ITERATIONS | awk '{ printf "%f", $1 / $2 }')
-    en_total=$(echo $t2 $ITERATIONS | awk '{ printf "%f", $1 / $2 }')
-    echo "Encoding (MB/sec): $encode"
-    echo "En_Total (MB/sec): $en_total"
+    for buffer in "${BUFSIZE[@]}"; do
+        echo ${buffer}
+        t1=0
+        for i in `seq ${ITERATIONS}`; do
+            res=`./encoder ${FILE} ${k} ${m} ${method} ${w} ${PACSIZE} ${buffer}`
+            encode=$(echo $res | awk -F ' ' '{print $3}')
+            t1=$(echo $t1 $encode | awk '{ printf "%f", $1 + $2 }')
+        done
+        encode=$(echo $t1 $ITERATIONS| awk '{ printf "%f", $1 / $2 / 1024 }')
+        echo "Encoding (G/sec): $encode"
 
-    rm ${rm_file1} ${rm_file2}
-
-    t1=0
-    t2=0
-    for i in `seq $ITERATIONS`; do
-        res=`./decoder "$file_name.$file_ext"`
-        decode=$(echo $res | awk -F ' ' '{print $3}')
-        t1=$(echo $t1 $decode | awk '{ printf "%f", $1 + $2 }')
-        de_total=$(echo $res | awk -F ' ' '{print $6}')
-        t2=$(echo $t2 $de_total | awk '{ printf "%f", $1 + $2 }')
+        rm ${rm_file1} ${rm_file2}
+        t1=0
+        for i in `seq ${ITERATIONS}`; do
+            res=`./decoder "$file_name.$file_ext"`
+            decode=$(echo $res | awk -F ' ' '{print $3}')
+            t1=$(echo $t1 $decode | awk '{ printf "%f", $1 + $2 }')
+        done
+        decode=$(echo $t1 $ITERATIONS| awk '{ printf "%f", $1 / $2 / 1024}')
+        echo "Decoding (G/sec): $decode"
     done
-    decode=$(echo $t1 $ITERATIONS | awk '{ printf "%f", $1 / $2 }')
-    de_total=$(echo $t2 $ITERATIONS | awk '{ printf "%f", $1 / $2 }')
-    echo "Decoding (MB/sec): $decode"
-    echo "De_Total (MB/sec): $de_total"
+    echo
 
 done
