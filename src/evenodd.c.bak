@@ -1,7 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <emmintrin.h>
 
 #include "galois.h"
 #include "jerasure.h"
@@ -22,21 +21,6 @@ int evenodd_xor(int src_index, int dest_index, char *src, char *dest, int per)
     return 1;
 }
 
-/* int evenodd_xor(int src_index, int dest_index, char *src, char *dest, int per) */
-/* { */
-/*     uint8_t *src_p = (uint8_t *)&(src[src_index*per]); */
-/*     uint8_t *dest_p = (uint8_t *) &(dest[dest_index*per]); */
-/*     uint8_t *end = (uint8_t *) &(src[src_index*per+per-1]); */
-/*     __m128i _s, _d; */
-/*     for(; src_p<=end; dest_p+=16, src_p+=16) { */
-/*         _s = _mm_loadu_si128( (__m128i*) src_p ); */
-/*         _d = _mm_loadu_si128( (__m128i*) dest_p ); */
-/*         _d = _mm_xor_si128( _d, _s ); */
-/*         _mm_store_si128( (__m128i*) dest_p, _d ); */
-/*     } */
-/*     return 1; */
-/* } */
-
 // 分别从src_index和dest_index开始将src的per位复制到dest
 int evenodd_copy(int src_index, int dest_index, char *src, char *dest, int per)
 {
@@ -48,19 +32,6 @@ int evenodd_copy(int src_index, int dest_index, char *src, char *dest, int per)
     }
     return 1;
 }
-
-/* int evenodd_copy(int src_index, int dest_index, char *src, char *dest, int per) */
-/* { */
-/*     uint8_t *src_p = (uint8_t *)&(src[src_index*per]); */
-/*     uint8_t *dest_p = (uint8_t *) &(dest[dest_index*per]); */
-/*     uint8_t *end = (uint8_t *) &(src[src_index*per+per-1]); */
-/*     __m128i _s, _d; */
-/*     for(; src_p<=end; dest_p+=16, src_p+=16) { */
-/*         _s = _mm_loadu_si128( (__m128i*) src_p ); */
-/*         _mm_store_si128( (__m128i*) dest_p, _s ); */
-/*     } */
-/*     return 1; */
-/* } */
 
 int get_s0(int k, char **data_ptrs, char **coding_ptrs, char *s0, int u, int per, int a, int b)
 {
